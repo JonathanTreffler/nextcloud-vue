@@ -105,12 +105,14 @@ https://www.w3.org/TR/wai-aria-practices/examples/menu-button/menu-button-action
 		class="action-item">
 		<!-- If more than one action, create a popovermenu -->
 		<Popover
+			:delay="0"
 			:handle-resize="true"
-			:open="opened"
+			:open.sync="opened"
 			:placement="placement"
 			boundaries-element="body"
 			container="body"
 			@show="openMenu"
+			@apply-show="onOpen"
 			@hide="closeMenu">
 			<!-- Menu open/close trigger button -->
 			<button slot="trigger"
@@ -356,10 +358,11 @@ export default {
 	watch: {
 		// Watch parent prop
 		open(state) {
-			this.opened = state
-			if (this.opened) {
-				this.onOpen()
+			if (state === this.opened) {
+				return
 			}
+
+			this.opened = state
 		},
 	},
 	beforeMount() {
@@ -384,54 +387,49 @@ export default {
 	methods: {
 		// MENU STATE MANAGEMENT
 		openMenu(e) {
-			console.trace('open');
-			/**
-			 * only emit events if it was closed
-			 * or else any click on the page will trigger
-			 * the click outside directive!
-			 */
-			if (!this.opened) {
-				this.opened = true
-				/**
-				 * Event emitted when the popover menu open state is changed
-				 * @type {boolean}
-				 */
-				this.$emit('update:open', true)
-
-				/**
-				 * Event emitted when the popover menu is closed
-				 */
-				this.$emit('open')
-
-				this.onOpen(e)
+			if (this.opened) {
+				return
 			}
+
+			this.opened = true
+
+			/**
+			 * Event emitted when the popover menu open state is changed
+			 * @type {boolean}
+			 */
+			this.$emit('update:open', true)
+
+			/**
+			 * Event emitted when the popover menu is closed
+			 */
+			this.$emit('open')
+
+			this.onOpen(e)
 		},
 		closeMenu(e) {
-			this.opened = false
-			/**
-			 * only emit events if it was opened
-			 * or else any click on the page will trigger
-			 * the click outside directive!
-			 */
-			if (this.opened) {
-				/**
-				 * Event emitted when the popover menu open state is changed
-				 * @type {boolean}
-				 */
-				this.$emit('update:open', false)
-
-				/**
-				 * Event emitted when the popover menu is closed
-				 */
-				this.$emit('close')
-
-				// close everything
-				this.opened = false
-				this.focusIndex = 0
-
-				// focus back the menu button
-				this.$refs.menuButton.focus()
+			if (!this.opened) {
+				return
 			}
+
+			this.opened = false
+
+			/**
+			 * Event emitted when the popover menu open state is changed
+			 * @type {boolean}
+			 */
+			this.$emit('update:open', false)
+
+			/**
+			 * Event emitted when the popover menu is closed
+			 */
+			this.$emit('close')
+
+			// close everything
+			this.opened = false
+			this.focusIndex = 0
+
+			// focus back the menu button
+			this.$refs.menuButton.focus()
 		},
 
 		onOpen(event) {
@@ -472,7 +470,6 @@ export default {
 		focusAction() {
 			// TODO: have a global disabled state for non input elements
 			const focusElement = this.$refs.menu.querySelectorAll(focusableSelector)[this.focusIndex]
-			console.trace(focusElement,this.$refs.menu.querySelectorAll(focusableSelector));
 			if (focusElement) {
 				this.removeCurrentActive()
 				const liMenuParent = focusElement.closest('li.action')
